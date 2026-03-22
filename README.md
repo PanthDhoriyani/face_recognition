@@ -1,9 +1,11 @@
 #  Celebrity Face Recognition App
 
+
 A web-based application that identifies celebrities from uploaded images using deep learning and computer vision.
 
 ✨ This project demonstrates practical implementation of face recognition using deep learning.
 
+### DESCRIPTION OF FILE AT LAST
 
 ##  Features
 
@@ -33,13 +35,22 @@ A web-based application that identifies celebrities from uploaded images using d
 
 ```
 ├── app.py
-├── names.pkl
+├── testing.py
+├── training.py
 ├── embedding.pkl
-├── images.pkl
 ├── requirements.txt
-└── README.md
+└── data
 ```
+##  About files
 
+* Data -> unzip data file
+* data.zip -> zip data file
+* screenshot -> to generate demo output
+* app.py -> streamlit file
+* embedding.pkl -> embedding of image(Pickle)
+* main.py(ongoing work) -> API(fastapi)
+* training -> training model
+* testing -> testing model
 ##  Run Locally
 
 ```bash
