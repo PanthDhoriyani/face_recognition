@@ -23,7 +23,7 @@ model.eval()
 mtcnn = MTCNN(image_size=160)
 
 ##testing
-x = cv2.imread('Screenshot 2026-03-22 203446.png')
+x = cv2.imread('demo images/Screenshot 2026-03-22 203446.png')
 face = mtcnn(x)
 
 if face is None:
