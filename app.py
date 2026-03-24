@@ -8,9 +8,7 @@ from facenet_pytorch import InceptionResnetV1, MTCNN
 from sklearn.metrics.pairwise import cosine_similarity
 import os
 
-# -----------------------------
-# Page Config
-# -----------------------------
+##layout
 st.set_page_config(
     page_title="Celebrity Face Recognition",
     page_icon="🎭",
@@ -19,10 +17,9 @@ st.set_page_config(
 
 st.markdown("####  @Panth-D")
 st.title("🎭 Celebrity Face Recognition")
+st.markdown("####  Upload any image or select a demo image to find the celebrity it most closely matches. The app shows the uploaded image, the matching celebrity image, and a confidence score. You can also click on demo images to try the feature instantly without uploading anything.")
 
-# -----------------------------
-# Load Data
-# -----------------------------
+## data
 @st.cache_resource
 def load_data():
     names = pickle.load(open('names.pkl', 'rb'))
@@ -41,9 +38,8 @@ def load_data():
 
 names, features_list, image_paths = load_data()
 
-# -----------------------------
-# Load Model
-# -----------------------------
+###model
+
 @st.cache_resource
 def load_model():
     mtcnn = MTCNN(image_size=160)
@@ -53,9 +49,7 @@ def load_model():
 
 mtcnn, model = load_model()
 
-# -----------------------------
-# Sidebar
-# -----------------------------
+## side bar
 st.sidebar.header("⚙️ Settings")
 
 threshold = st.sidebar.slider(
@@ -68,9 +62,8 @@ mode = st.sidebar.radio(
     ["Upload Image", "Demo Images"]
 )
 
-# -----------------------------
-# Prediction Function
-# -----------------------------
+##prediction
+
 def predict(img_np):
     face = mtcnn(img_np)
 
@@ -97,9 +90,7 @@ def predict(img_np):
     return best_idx, best_score
 
 
-# -----------------------------
-# Upload Mode
-# -----------------------------
+## upload model
 if mode == "Upload Image":
     uploaded_file = st.file_uploader("📤 Upload Image", type=["jpg", "png", "jpeg"])
 
@@ -123,7 +114,7 @@ if mode == "Upload Image":
                     matched_name = names[idx]
 
                     if score < threshold:
-                        # Yellow box
+                        ### will show Yellow box when less confidence
                         st.markdown(
                             f"""
                             <div style="
@@ -144,16 +135,14 @@ if mode == "Upload Image":
                         st.success(f"✅ {matched_name}")
                         st.write(f"Confidence: {score:.2f}")
 
-                    # Show matched image
+                    ## matched image
                     st.image(image_paths[idx], use_container_width=True)
 
-                    # Confidence bar
+                    ### Confidence bar
                     st.progress(float(score))
 
 
-# -----------------------------
-# Demo Mode
-# -----------------------------
+####demo
 elif mode == "Demo Images":
     st.subheader("🎯 Select Demo Images")
 
