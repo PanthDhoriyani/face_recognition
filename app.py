@@ -17,7 +17,7 @@ st.set_page_config(
 
 st.markdown("####  @Panth-D")
 st.title("🎭 Celebrity Face Recognition")
-st.markdown("####  Upload any image or select a demo image to find the celebrity it most closely matches. The app shows the uploaded image, the matching celebrity image, and a confidence score. You can also click on demo images to try the feature instantly without uploading anything.")
+st.write("#######  Upload any image or select a demo image to find the celebrity it most closely matches. The app shows the uploaded image, the matching celebrity image, and a confidence score. You can also click on demo images to try the feature instantly without uploading anything.")
 
 ## data
 @st.cache_resource
