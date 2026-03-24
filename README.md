@@ -7,6 +7,8 @@ A web-based application that identifies celebrities from uploaded images using d
 
 ### DESCRIPTION OF FILE AT LAST
 
+deployed->url->https://facerecognition-qufsgp5uevydmyraum3sah.streamlit.app/
+
 ##  Features
 
 * Upload an image and detect faces automatically
