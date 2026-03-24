@@ -26,8 +26,17 @@ st.title("🎭 Celebrity Face Recognition")
 def load_data():
     names = pickle.load(open('names.pkl', 'rb'))
     embeddings = pickle.load(open('embedding.pkl', 'rb'))
-    images = pickle.load(open('images.pkl', 'rb'))
-    return names, embeddings, images
+
+    image_folder = "hf_dataset/images"
+
+    image_paths = []
+    for i, name in enumerate(names):
+        filename = f"{name}_{i}.jpg"
+        path = os.path.join(image_folder, filename)
+        image_paths.append(path)
+
+    return names, embeddings, image_paths
+
 
 names, features_list, image_paths = load_data()
 
@@ -39,6 +48,7 @@ def load_model():
     mtcnn = MTCNN(image_size=160)
     model = InceptionResnetV1(pretrained='vggface2').eval()
     return mtcnn, model
+
 
 mtcnn, model = load_model()
 
@@ -85,6 +95,7 @@ def predict(img_np):
 
     return best_idx, best_score
 
+
 # -----------------------------
 # Upload Mode
 # -----------------------------
@@ -109,17 +120,35 @@ if mode == "Upload Image":
                     st.subheader("🎯 Prediction")
 
                     matched_name = names[idx]
-                    matched_img = image_paths[idx][:, :, ::-1]
 
                     if score < threshold:
-                        st.warning(f"⚠️ Low Confidence Prediction: {matched_name}")
-                        st.write(f"Confidence: {score:.2f} (Below Threshold)")
+                        # Yellow box
+                        st.markdown(
+                            f"""
+                            <div style="
+                                background-color:#fff3cd;
+                                padding:15px;
+                                border-radius:10px;
+                                border:1px solid #ffeeba;
+                                color:black;
+                            ">
+                                <h4>⚠️ Low Confidence Prediction</h4>
+                                <p><b>Name:</b> {matched_name}</p>
+                                <p><b>Confidence:</b> {score:.2f} (Below Threshold)</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
                     else:
                         st.success(f"✅ {matched_name}")
                         st.write(f"Confidence: {score:.2f}")
 
-                    st.image(matched_img, use_container_width=True)
+                    # Show matched image
+                    st.image(image_paths[idx], use_container_width=True)
+
+                    # Confidence bar
                     st.progress(float(score))
+
 
 # -----------------------------
 # Demo Mode
@@ -160,31 +189,29 @@ elif mode == "Demo Images":
                             st.subheader("🎯 Prediction")
 
                             matched_name = names[idx]
-                            matched_img = image_paths[idx][:, :, ::-1]
 
                             if score < threshold:
-                                with st.container():
-                                    st.markdown(
-                                        f"""
-                                        <div style="
-                                            background-color:#fff3cd;
-                                            padding:15px;
-                                            border-radius:10px;
-                                            border:1px solid #ffeeba;
-                                            color:black;
-                                        ">
-                                            <h4>⚠️ Low Confidence Prediction</h4>
-                                            <p><b>Name:</b> {matched_name}</p>
-                                            <p><b>Confidence:</b> {score:.2f} (Below Threshold)</p>
-                                        </div>
-                                        """,
-                                        unsafe_allow_html=True
-                                    )
+                                st.markdown(
+                                    f"""
+                                    <div style="
+                                        background-color:#fff3cd;
+                                        padding:15px;
+                                        border-radius:10px;
+                                        border:1px solid #ffeeba;
+                                        color:black;
+                                    ">
+                                        <h4>⚠️ Low Confidence Prediction</h4>
+                                        <p><b>Name:</b> {matched_name}</p>
+                                        <p><b>Confidence:</b> {score:.2f} (Below Threshold)</p>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
                             else:
                                 st.success(f"✅ {matched_name}")
                                 st.write(f"Confidence: {score:.2f}")
 
-                            st.image(matched_img, use_container_width=True)
+                            st.image(image_paths[idx], use_container_width=True)
                             st.progress(float(score))
 
                         st.markdown("---")
