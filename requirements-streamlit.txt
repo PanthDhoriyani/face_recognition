@@ -6,3 +6,4 @@ opencv-python
 numpy
 scikit-learn
 pillow
+torchvision==0.26.0
