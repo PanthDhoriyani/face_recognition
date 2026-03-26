@@ -7,7 +7,7 @@ import os
 
 app = FastAPI(title="Celebrity Face Recognition API")
 
-# ---------------- LOAD DATA ---------------- #
+### LOAD DATA
 
 try:
     names = pickle.load(open('names.pkl', 'rb'))
@@ -15,7 +15,7 @@ try:
 except Exception as e:
     raise RuntimeError(f"Error loading pickle files: {e}")
 
-# build image paths
+### build image paths
 image_folder = "hf_dataset/images"
 image_paths = []
 
@@ -24,25 +24,25 @@ for i, name in enumerate(names):
     path = os.path.join(image_folder, filename)
     image_paths.append(path)
 
-# ---------------- LOAD MODEL ---------------- #
+##LOAD MODEL
 
 model = InceptionResnetV1(pretrained='vggface2', classify=False)
 model.eval()
 
 mtcnn = MTCNN(image_size=160)
 
-# ---------------- HEALTH CHECK ---------------- #
+## HEALTH CHECK
 
 @app.get("/")
 def home():
     return {"status": "API running"}
 
-# ---------------- PREDICTION ---------------- #
+#### PREDICTION
 
 @app.post("/predict_image")
 def predict_image(file: UploadFile = File(...)):
 
-    # read image
+    ### read image
     contents = file.file.read()
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -52,17 +52,17 @@ def predict_image(file: UploadFile = File(...)):
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # detect face
+    ### detect face
     face = mtcnn(img)
 
     if face is None:
         img_resized = cv2.resize(img, (160,160))
         face = torch.tensor(img_resized).permute(2,0,1).float()/255.0
 
-    # embedding
+    ## embedding
     emb = model(face.unsqueeze(0)).detach().numpy()
 
-    # similarity
+    ### similarity
     scores = [
         cosine_similarity(emb.reshape(1,-1), f.reshape(1,-1))[0][0]
         for f in features_list
