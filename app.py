@@ -1,14 +1,14 @@
 import streamlit as st
-import pickle
-import cv2
-import torch
-import numpy as np
+import requests
 from PIL import Image
-from facenet_pytorch import InceptionResnetV1, MTCNN
-from sklearn.metrics.pairwise import cosine_similarity
+import base64
+import io
 import os
 
-##layout
+# ---------------- CONFIG ---------------- #
+
+API_URL = "http://127.0.0.1:8000/predict_image"
+
 st.set_page_config(
     page_title="Celebrity Face Recognition",
     page_icon="🎭",
@@ -16,40 +16,11 @@ st.set_page_config(
 )
 
 st.markdown("####  @Panth-D")
-st.title("🎭 Celebrity Face Recognition")
-st.write("Upload any image or select a demo image to find the celebrity it most closely matches. The app shows the uploaded image, the matching celebrity image, and a confidence score. You can also click on demo images to try the feature instantly without uploading anything.")
+st.title("🎭 Celebrity Face Recognition (API Powered)")
+st.write("Upload or select demo images to detect celebrity using FastAPI backend.")
 
-## data
-@st.cache_resource
-def load_data():
-    names = pickle.load(open('names.pkl', 'rb'))
-    embeddings = pickle.load(open('embedding.pkl', 'rb'))
+# ---------------- SIDEBAR ---------------- #
 
-    image_folder = "hf_dataset/images"
-
-    image_paths = []
-    for i, name in enumerate(names):
-        filename = f"{name}_{i}.jpg"
-        path = os.path.join(image_folder, filename)
-        image_paths.append(path)
-
-    return names, embeddings, image_paths
-
-
-names, features_list, image_paths = load_data()
-
-###model
-
-@st.cache_resource
-def load_model():
-    mtcnn = MTCNN(image_size=160)
-    model = InceptionResnetV1(pretrained='vggface2').eval()
-    return mtcnn, model
-
-
-mtcnn, model = load_model()
-
-## side bar
 st.sidebar.header("⚙️ Settings")
 
 threshold = st.sidebar.slider(
@@ -62,96 +33,125 @@ mode = st.sidebar.radio(
     ["Upload Image", "Demo Images"]
 )
 
-##prediction
+# ---------------- API CALL FUNCTION ---------------- #
 
-def predict(img_np):
-    face = mtcnn(img_np)
+def call_api_uploaded(uploaded_file):
+    try:
+        files = {
+            "file": (
+                uploaded_file.name,
+                uploaded_file.getvalue(),
+                uploaded_file.type
+            )
+        }
 
-    if face is None:
-        img_resized = cv2.resize(img_np, (160, 160))
-        face = torch.tensor(img_resized).permute(2, 0, 1).float() / 255.0
+        response = requests.post(API_URL, files=files)
 
-    emb = model(face.unsqueeze(0))
-    emb_np = emb.detach().numpy()
+        if response.status_code != 200:
+            st.error(f"❌ API Error: {response.text}")
+            return None
 
-    scores = []
+        return response.json()
 
-    for f in features_list:
-        similarity = cosine_similarity(
-            emb_np.reshape(1, -1),
-            f.reshape(1, -1)
-        )[0][0]
-
-        scores.append(similarity)
-
-    best_idx = np.argmax(scores)
-    best_score = scores[best_idx]
-
-    return best_idx, best_score
+    except Exception as e:
+        st.error(f"🚨 Connection Error: {e}")
+        return None
 
 
-## upload model
+def call_api_demo(file_path):
+    try:
+        with open(file_path, "rb") as f:
+            files = {
+                "file": (os.path.basename(file_path), f.read(), "image/jpeg")
+            }
+
+            response = requests.post(API_URL, files=files)
+
+        if response.status_code != 200:
+            st.error(f"❌ API Error: {response.text}")
+            return None
+
+        return response.json()
+
+    except Exception as e:
+        st.error(f"🚨 Connection Error: {e}")
+        return None
+
+
+# ---------------- UPLOAD MODE ---------------- #
+
 if mode == "Upload Image":
-    uploaded_file = st.file_uploader("📤 Upload Image", type=["jpg", "png", "jpeg"])
+
+    uploaded_file = st.file_uploader(
+        "📤 Upload Image",
+        type=["jpg", "png", "jpeg"]
+    )
 
     if uploaded_file:
         image = Image.open(uploaded_file).convert('RGB')
-        img_np = np.array(image)
 
         if st.button("🚀 Predict"):
-            with st.spinner("Processing... Please wait ⏳"):
-                idx, score = predict(img_np)
+            with st.spinner("Calling API... ⏳"):
 
-                col1, col2 = st.columns(2)
+                result = call_api_uploaded(uploaded_file)
 
-                with col1:
-                    st.subheader("📤 Input Image")
-                    st.image(image, use_container_width=True)
+                if result:
+                    name = result["name"]
+                    confidence = result["confidence"]
 
-                with col2:
-                    st.subheader("🎯 Prediction")
+                    img_bytes = base64.b64decode(result["image"])
+                    matched_img = Image.open(io.BytesIO(img_bytes))
 
-                    matched_name = names[idx]
+                    col1, col2 = st.columns(2)
 
-                    if score < threshold:
-                        ### will show Yellow box when less confidence
-                        st.markdown(
-                            f"""
-                            <div style="
-                                background-color:#fff3cd;
-                                padding:15px;
-                                border-radius:10px;
-                                border:1px solid #ffeeba;
-                                color:black;
-                            ">
-                                <h4>⚠️ Low Confidence Prediction</h4>
-                                <p><b>Name:</b> {matched_name}</p>
-                                <p><b>Confidence:</b> {score:.2f} (Below Threshold)</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                    else:
-                        st.success(f"✅ {matched_name}")
-                        st.write(f"Confidence: {score:.2f}")
+                    with col1:
+                        st.subheader("📤 Input Image")
+                        st.image(image, use_container_width=True)
 
-                    ## matched image
-                    st.image(image_paths[idx], use_container_width=True)
+                    with col2:
+                        st.subheader("🎯 Prediction")
 
-                    ### Confidence bar
-                    st.progress(float(score))
+                        if confidence < threshold:
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color:#fff3cd;
+                                    padding:15px;
+                                    border-radius:10px;
+                                    border:1px solid #ffeeba;
+                                    color:black;
+                                ">
+                                    <h4>⚠️ Low Confidence Prediction</h4>
+                                    <p><b>Name:</b> {name}</p>
+                                    <p><b>Confidence:</b> {confidence:.2f}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        else:
+                            st.success(f"✅ {name}")
+                            st.write(f"Confidence: {confidence:.2f}")
+
+                        st.image(matched_img, use_container_width=True)
+                        st.progress(float(confidence))
 
 
-####demo
+# ---------------- DEMO MODE ---------------- #
+
 elif mode == "Demo Images":
+
     st.subheader("🎯 Select Demo Images")
 
     demo_folder = "demo_images"
 
     if not os.path.exists(demo_folder):
         st.error("❌ demo_images folder not found")
+
     else:
-        demo_files = [f for f in os.listdir(demo_folder) if f.lower().endswith(('jpg','png','jpeg'))]
+        demo_files = [
+            f for f in os.listdir(demo_folder)
+            if f.lower().endswith(('jpg','png','jpeg'))
+        ]
 
         selected_files = st.multiselect(
             "Choose Demo Images",
@@ -163,45 +163,49 @@ elif mode == "Demo Images":
                 with st.spinner("Processing Demo Images... ⏳"):
 
                     for file in selected_files:
+
                         img_path = os.path.join(demo_folder, file)
-                        image = Image.open(img_path).convert('RGB')
-                        img_np = np.array(image)
 
-                        idx, score = predict(img_np)
+                        result = call_api_demo(img_path)
 
-                        col1, col2 = st.columns(2)
+                        if result:
+                            name = result["name"]
+                            confidence = result["confidence"]
 
-                        with col1:
-                            st.subheader(f"📤 Input: {file}")
-                            st.image(image, use_container_width=True)
+                            img_bytes = base64.b64decode(result["image"])
+                            matched_img = Image.open(io.BytesIO(img_bytes))
 
-                        with col2:
-                            st.subheader("🎯 Prediction")
+                            col1, col2 = st.columns(2)
 
-                            matched_name = names[idx]
+                            with col1:
+                                st.subheader(f"📤 Input: {file}")
+                                st.image(img_path, use_container_width=True)
 
-                            if score < threshold:
-                                st.markdown(
-                                    f"""
-                                    <div style="
-                                        background-color:#fff3cd;
-                                        padding:15px;
-                                        border-radius:10px;
-                                        border:1px solid #ffeeba;
-                                        color:black;
-                                    ">
-                                        <h4>⚠️ Low Confidence Prediction</h4>
-                                        <p><b>Name:</b> {matched_name}</p>
-                                        <p><b>Confidence:</b> {score:.2f} (Below Threshold)</p>
-                                    </div>
-                                    """,
-                                    unsafe_allow_html=True
-                                )
-                            else:
-                                st.success(f"✅ {matched_name}")
-                                st.write(f"Confidence: {score:.2f}")
+                            with col2:
+                                st.subheader("🎯 Prediction")
 
-                            st.image(image_paths[idx], use_container_width=True)
-                            st.progress(float(score))
+                                if confidence < threshold:
+                                    st.markdown(
+                                        f"""
+                                        <div style="
+                                            background-color:#fff3cd;
+                                            padding:15px;
+                                            border-radius:10px;
+                                            border:1px solid #ffeeba;
+                                            color:black;
+                                        ">
+                                            <h4>⚠️ Low Confidence Prediction</h4>
+                                            <p><b>Name:</b> {name}</p>
+                                            <p><b>Confidence:</b> {confidence:.2f}</p>
+                                        </div>
+                                        """,
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.success(f"✅ {name}")
+                                    st.write(f"Confidence: {confidence:.2f}")
 
-                        st.markdown("---")
+                                st.image(matched_img, use_container_width=True)
+                                st.progress(float(confidence))
+
+                            st.markdown("---")
