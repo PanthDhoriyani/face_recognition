@@ -9,6 +9,7 @@ A web-based application that identifies celebrities from uploaded images using d
 
 In this Project , I have created api using fast-api for this project , but it is not integrated with 
 streamlit server. But api is working independently on local network... and can be checked on /docs endpoint
+
 deployed->url->https://facerecognition-qufsgp5uevydmyraum3sah.streamlit.app/
 
 ##  Features
@@ -59,7 +60,8 @@ deployed->url->https://facerecognition-qufsgp5uevydmyraum3sah.streamlit.app/
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run app.py 
+uvicorn main:app --reload  (for fast-api)
 ```
 
 ##  Output
