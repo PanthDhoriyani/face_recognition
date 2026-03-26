@@ -7,6 +7,8 @@ A web-based application that identifies celebrities from uploaded images using d
 
 ### DESCRIPTION OF FILE AT LAST
 
+In this Project , I have created api using fast-api for this project , but it is not integrated with 
+streamlit server. But api is working independently on local network... and can be checked on /docs endpoint
 deployed->url->https://facerecognition-qufsgp5uevydmyraum3sah.streamlit.app/
 
 ##  Features
