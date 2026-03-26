@@ -2,8 +2,7 @@ streamlit
 requests
 facenet-pytorch
 torch
-opencv-python
+opencv-python-headless
 numpy
 scikit-learn
-pillow
-torchvision==0.26.0
+Pillow==12.1.1
