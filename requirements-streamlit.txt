@@ -1,0 +1,8 @@
+streamlit
+requests
+facenet-pytorch
+torch
+opencv-python
+numpy
+scikit-learn
+pillow
